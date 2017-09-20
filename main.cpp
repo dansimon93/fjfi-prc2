@@ -1,6 +1,7 @@
 #include <QApplication>
 #include "text-editor.h"
 
+
 /*
 *------------------------------------------------------------------------------
 * This project has been created for the course of Programming in C++ 2        |
