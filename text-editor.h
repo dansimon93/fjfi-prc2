@@ -52,12 +52,18 @@ private:
     void createTextEdit();
     void createStatusBar();
     void setSize();
+    void connectSignals();
+    void closeEvent(QCloseEvent *event);
+
 public:
     explicit TextEditor(QWidget *parent = 0);
 
 signals:
 
 public slots:
+    void about();
+    void documentation();
+    void print();
 };
 
 #endif // TEXTEDITOR

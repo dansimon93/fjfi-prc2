@@ -2,6 +2,7 @@
 
 #include<QPlainTextEdit>
 #include<QMenu>
+#include<QPrinter>
 #include<QMenuBar>
 #include<QToolBar>
 #include<QAction>
@@ -15,6 +16,7 @@
 TextEditor::TextEditor(QWidget *parent) : QMainWindow(parent)
 {
     createActions();
+    connectSignals();
     createMenuBar();
     createToolBar();
     createTextEdit();
@@ -52,8 +54,8 @@ void TextEditor::createActions()
                        QIcon(":/icons/saveas.png"));
     actionSaveAs = new QAction(tr("Save &as"), this);
     actionSaveAs->setShortcut(QKeySequence::SaveAs);
-    actionSaveAs->setToolTip(tr("Save file &as .."));
-    actionSaveAs->setStatusTip(tr("Save file &as .."));
+    actionSaveAs->setToolTip(tr("Save file as .."));
+    actionSaveAs->setStatusTip(tr("Save file as .."));
     actionSaveAs->setIcon(iconSaveAs);
 
     QIcon iconPrint = QIcon::fromTheme("document-print",
@@ -145,7 +147,24 @@ void TextEditor::createMenuBar()
 void TextEditor::createToolBar()
 {
     mainToolbar = addToolBar(tr("Main tool bar"));
+    mainToolbar->addAction(actionNew);
+    mainToolbar->addSeparator();
     mainToolbar->addAction(actionOpen);
+    mainToolbar->addSeparator();
+    mainToolbar->addAction(actionSave);
+    mainToolbar->addAction(actionSaveAs);
+    mainToolbar->addSeparator();
+    mainToolbar->addAction(actionCut);
+    mainToolbar->addAction(actionCopy);
+    mainToolbar->addAction(actionPaste);
+    mainToolbar->addSeparator();
+    mainToolbar->addAction(actionPrint);
+    mainToolbar->addSeparator();
+    mainToolbar->addAction(actionDocumentation);
+    mainToolbar->addAction(actionAbout);
+    mainToolbar->addSeparator();
+    mainToolbar->addAction(actionQuit);
+    mainToolbar->addSeparator();
 }
 
 void TextEditor::createTextEdit()
@@ -164,4 +183,59 @@ void TextEditor::setSize()
     width = 800;
     height = 600;
     resize(width,height);
+}
+
+void TextEditor::closeEvent(QCloseEvent *event)
+{
+    if(QMessageBox::question(this, tr("Are you sure?"), tr("Do you wish to quit?"))
+            == QMessageBox::Yes){
+        event->accept();
+    } else{
+        event->ignore();
+    }
+}
+
+void TextEditor::connectSignals()
+{
+    connect(actionQuit, SIGNAL(triggered()),
+                this, SLOT(close()));
+    connect(actionAbout, SIGNAL(triggered()),
+                this, SLOT(about()));
+    connect(actionDocumentation, SIGNAL(triggered()),
+                this, SLOT(documentation()));
+    connect(actionPrint, SIGNAL(triggered()),
+                this, SLOT(print()));
+}
+
+void TextEditor::documentation()
+{
+    QMessageBox::about(this, tr("About this editor"),
+            tr("<center><h3><u>Documentation</u></h3>"
+               "The documentation for this editor is available online on the following link below: "
+               "<br />"
+               "<br />"
+               "<i>http://www.people.fjfi.cvut.cz/simonda4/editor.html</i>"
+               "</center>"));
+}
+
+void TextEditor::about()
+{
+    QMessageBox::about(this, tr("About this editor"),
+            tr("<center><h3><u>Text Editor v1.1</u></h3>"
+               "This editor was created for the course of Programming in C++ 2 at FNSPE CTU. "
+               "It is based on Qt v5.9 and C++ 11. "
+               "<br />"
+               "<br />"
+               "<b>Daniel Simon | dansimon93@gmail.com </b>"));
+}
+
+void TextEditor::print()
+{
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName("output.pdf");
+    textEdit->print(&printer);
+
+    QMessageBox::about(this, tr("Printer message"),
+            tr("File has been successfully printed!"));
 }
