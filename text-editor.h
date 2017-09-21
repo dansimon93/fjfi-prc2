@@ -9,13 +9,18 @@ class QMenu;
 class QToolBar;
 class QAction;
 class QCloseEvent;
+class QString;
 
 
 class TextEditor : public QMainWindow
 {
-private:
+
     Q_OBJECT
 
+public:
+    explicit TextEditor(QWidget *parent = 0);
+
+private:
     QPlainTextEdit *textEdit;
 
     /*Categories of the menu*/
@@ -45,7 +50,10 @@ private:
     /*Integerers for window size*/
     quint16 width, height;
 
-    /*Text editor methods*/
+    /*File name*/
+    QString FILE;
+
+    /*Init of components*/
     void createActions();
     void createMenuBar();
     void createToolBar();
@@ -53,17 +61,25 @@ private:
     void createStatusBar();
     void setSize();
     void connectSignals();
-    void closeEvent(QCloseEvent *event);
+    /*Text-editor methods*/
+    void isModified();
+    bool checkChanges();
+    void openFile(const QString &fileName);
+    bool saveFile(const QString &fileName);
+    void setFile(const QString &fileName);
 
-public:
-    explicit TextEditor(QWidget *parent = 0);
+    void closeEvent(QCloseEvent *event);
 
 signals:
 
 public slots:
+    void newFile();
+    void open();
+    bool save();
+    bool saveAs();
+    void printPDF();
     void about();
     void documentation();
-    void print();
 };
 
 #endif // TEXTEDITOR

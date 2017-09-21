@@ -9,12 +9,15 @@
 #include<QCloseEvent>
 #include<QMessageBox>
 #include<QStatusBar>
+#include<QtWidgets> /// QTextStream and QApplication
+#include<QString>
 
 
-/*Implementation of text-editor class*/
+/*-----------------------------------------------------------------------------------------------*/
 
 TextEditor::TextEditor(QWidget *parent) : QMainWindow(parent)
 {
+    /*Calling methods*/
     createActions();
     connectSignals();
     createMenuBar();
@@ -23,6 +26,8 @@ TextEditor::TextEditor(QWidget *parent) : QMainWindow(parent)
     createStatusBar();
     setSize();
 }
+
+/*-----------------------------------------------------------------------------------------------*/
 
 void TextEditor::createActions()
 {
@@ -116,6 +121,8 @@ void TextEditor::createActions()
 
 }
 
+/*-----------------------------------------------------------------------------------------------*/
+
 void TextEditor::createMenuBar()
 {
     menuFile = new QMenu(tr("File"), this);
@@ -144,6 +151,8 @@ void TextEditor::createMenuBar()
     menuBar()->addMenu(menuHelp);
 }
 
+/*-----------------------------------------------------------------------------------------------*/
+
 void TextEditor::createToolBar()
 {
     mainToolbar = addToolBar(tr("Main tool bar"));
@@ -167,15 +176,35 @@ void TextEditor::createToolBar()
     mainToolbar->addSeparator();
 }
 
+/*-----------------------------------------------------------------------------------------------*/
+
+void TextEditor::connectSignals()
+{
+    connect(actionNew, SIGNAL(triggered()),
+                this, SLOT(newFile()));
+    connect(actionOpen, SIGNAL(triggered()),
+                this, SLOT(open()));
+    connect(actionSave, SIGNAL(triggered()),
+                this, SLOT(save()));
+    connect(actionSaveAs, SIGNAL(triggered()),
+                this, SLOT(saveAs()));
+    connect(actionPrint, SIGNAL(triggered()),
+                this, SLOT(printPDF()));
+    connect(actionQuit, SIGNAL(triggered()),
+                this, SLOT(close()));
+    connect(actionAbout, SIGNAL(triggered()),
+                this, SLOT(about()));
+    connect(actionDocumentation, SIGNAL(triggered()),
+                this, SLOT(documentation()));
+
+}
+
+/*-----------------------------------------------------------------------------------------------*/
+
 void TextEditor::createTextEdit()
 {
     textEdit = new QPlainTextEdit;
     setCentralWidget(textEdit);
-}
-
-void TextEditor::createStatusBar()
-{
-    statusBar()->showMessage(tr("Ready"));
 }
 
 void TextEditor::setSize()
@@ -185,26 +214,144 @@ void TextEditor::setSize()
     resize(width,height);
 }
 
-void TextEditor::closeEvent(QCloseEvent *event)
+void TextEditor::createStatusBar()
 {
-    if(QMessageBox::question(this, tr("Are you sure?"), tr("Do you wish to quit?"))
-            == QMessageBox::Yes){
-        event->accept();
-    } else{
-        event->ignore();
+    statusBar()->showMessage(tr("Ready"));
+}
+
+/*-----------------------------------------------------------------------------------------------*/
+
+void TextEditor::isModified()
+{
+    setWindowModified(textEdit->document()->isModified());
+}
+
+
+bool TextEditor::checkChanges()
+{
+    if(textEdit->document()->isModified()){
+        QMessageBox::StandardButton q;
+        q = QMessageBox::warning(this, tr("Warning"),
+                                       tr("File was modified! Do you want to save changes?"),
+            QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel);
+        if (q == QMessageBox::Save)
+            return save();
+        else if (q == QMessageBox::Cancel)
+            return false;
+    }
+    return true;
+}
+
+void TextEditor::openFile(const QString &fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QFile::ReadOnly | QFile::Text))
+    {
+         QMessageBox::warning(this, tr("Warning"),
+                                    tr("Cannot read file!"));
+    return;
+    }
+
+    QTextStream in(&file);
+    #ifndef QT_NO_CURSOR
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+    #endif
+        textEdit->setPlainText(in.readAll());
+    #ifndef QT_NO_CURSOR
+        QApplication::restoreOverrideCursor();
+    #endif
+
+    setFile(fileName);
+        statusBar()->showMessage(tr("File has been loaded"), 2000);
+}
+
+bool TextEditor::saveFile(const QString &fileName)
+{
+    QFile file(fileName);
+    if (!file.open(QFile::WriteOnly | QFile::Text))
+    {
+        QMessageBox::warning(this, tr("Warning"),
+                                   tr("Cannot write into file!"));
+        return false;
+    }
+
+    QTextStream out(&file);
+    #ifndef QT_NO_CURSOR
+        QApplication::setOverrideCursor(Qt::WaitCursor);
+    #endif
+        out << textEdit->toPlainText();
+    #ifndef QT_NO_CURSOR
+        QApplication::restoreOverrideCursor();
+    #endif
+
+    setFile(fileName);
+    statusBar()->showMessage(tr("File has been saved"), 2000);
+    return true;
+}
+
+void TextEditor::setFile(const QString &fileName)
+{
+    FILE = fileName;
+    textEdit->document()->setModified(false);
+    setWindowModified(false);
+
+    QString nameThis = FILE;
+    if (nameThis.isEmpty())
+        nameThis = "untitled.txt";
+    setWindowFilePath(nameThis);
+}
+
+/*-----------------------------------------------------------------------------------------------*/
+
+void TextEditor::newFile()
+{
+    if(checkChanges())
+    {
+        textEdit->clear();
+        setFile("");
     }
 }
 
-void TextEditor::connectSignals()
+void TextEditor::open()
 {
-    connect(actionQuit, SIGNAL(triggered()),
-                this, SLOT(close()));
-    connect(actionAbout, SIGNAL(triggered()),
-                this, SLOT(about()));
-    connect(actionDocumentation, SIGNAL(triggered()),
-                this, SLOT(documentation()));
-    connect(actionPrint, SIGNAL(triggered()),
-                this, SLOT(print()));
+    if(checkChanges())
+    {
+        QString fileName = QFileDialog::getOpenFileName(this);
+            if (!fileName.isEmpty())
+                openFile(fileName);
+    }
+}
+
+bool TextEditor::saveAs()
+ {
+     QString fileName = QFileDialog::getSaveFileName(this);
+     if (fileName.isEmpty())
+         return false;
+
+     return saveFile(fileName);
+ }
+
+bool TextEditor::save(){
+    if(FILE.isEmpty())
+    {
+        return saveAs();
+    }
+    else
+    {
+        return saveFile(FILE);
+    }
+
+}
+
+void TextEditor::printPDF()
+{
+    QPrinter printer(QPrinter::HighResolution);
+    printer.setOutputFormat(QPrinter::PdfFormat);
+    printer.setOutputFileName("output.pdf");
+    textEdit->print(&printer);
+
+    QMessageBox::about(this, tr("Printer message"),
+            tr("File has been successfully printed to PDF!"));
 }
 
 void TextEditor::documentation()
@@ -229,13 +376,14 @@ void TextEditor::about()
                "<b>Daniel Simon | dansimon93@gmail.com </b>"));
 }
 
-void TextEditor::print()
+void TextEditor::closeEvent(QCloseEvent *event)
 {
-    QPrinter printer(QPrinter::HighResolution);
-    printer.setOutputFormat(QPrinter::PdfFormat);
-    printer.setOutputFileName("output.pdf");
-    textEdit->print(&printer);
-
-    QMessageBox::about(this, tr("Printer message"),
-            tr("File has been successfully printed!"));
+    if(QMessageBox::question(this, tr("Are you sure?"), tr("Do you wish to quit?"))
+            == QMessageBox::Yes){
+        event->accept();
+    } else{
+        event->ignore();
+    }
 }
+
+/*-----------------------------------------------------------------------------------------------*/
